@@ -86,7 +86,7 @@ func (p *Proposer) RunPaxos(acceptorIds []int64, val *Value) *Value {
 // Phase1 run paxos phase-1 on the specified acceptorIds.
 // If a higher ballot number is seen and phase-1 failed to constitute a quorum,
 // one of the higher ballot number and a NotEnoughQuorum is returned.
-func (p *Proposer) Phase1(acceptorIds []int64, quorum int) (*Value, *BallotNum, error) {
+func (p *Proposer) Phase1(acceptorIds []int64, quorum int) (* Value, *BallotNum, error) {
 
 	replies := p.rpcToAll(acceptorIds, "Prepare")
 
@@ -99,12 +99,17 @@ func (p *Proposer) Phase1(acceptorIds []int64, quorum int) (*Value, *BallotNum, 
 		pretty.Logf("Proposer: handling Prepare reply: %s", r)
 		if !p.Bal.GE(r.LastBal) {
 			if r.LastBal.GE(&higherBal) {
+				// find the highest ballot number seen
 				higherBal = *r.LastBal
 			}
+			// whether we need to check r.VBal.GE(maxVoted.VBal) ???
+			// No need, we should not use any information from the acceptors who refuse the proposal.
+			// When we are refused, we only need to know the highest ballot number that has been seen.
 			continue
 		}
 
 		// find the voted value with highest vbal
+		// Wheather we need to check r.VBal != nil ???
 		if r.VBal.GE(maxVoted.VBal) {
 			maxVoted = r
 		}
@@ -131,6 +136,7 @@ func (p *Proposer) Phase2(acceptorIds []int64, quorum int) (*BallotNum, error) {
 	for _, r := range replies {
 		pretty.Logf("Proposer: handling Accept reply: %s", r)
 		if !p.Bal.GE(r.LastBal) {
+			// find the highest ballot number seen
 			if r.LastBal.GE(&higherBal) {
 				higherBal = *r.LastBal
 			}
@@ -210,14 +216,15 @@ func (s *KVServer) getLockedVersion(id *PaxosInstanceId) *Version {
 	key := id.Key
 	ver := id.Ver
 	rec, found := s.Storage[key]
+	// if not found, create a new record of the key
 	if !found {
 		rec = Versions{}
 		s.Storage[key] = rec
 	}
-
+	// get the version of the key
 	v, found := rec[ver]
 	if !found {
-		// initialize an empty paxos instance
+		// initialize an empty paxos instance for the key version
 		rec[ver] = &Version{
 			acceptor: Acceptor{
 				LastBal: &BallotNum{},
@@ -243,12 +250,13 @@ func (s *KVServer) Prepare(c context.Context, r *Proposer) (*Acceptor, error) {
 
 	v := s.getLockedVersion(r.Id)
 	defer v.mu.Unlock()
-	reply := v.acceptor
+	reply := v.acceptor		// first: Returns the accepted value (if any) to the Proposer (by returning the full Acceptor status).
 
 	if r.Bal.GE(v.acceptor.LastBal) {
-		v.acceptor.LastBal = r.Bal
+		v.acceptor.LastBal = r.Bal	// second: Update LastBal and promise not to accept proposals with numbers less than n.
 	}
 
+	// third: It returns the previously copied state instead of the updated state.
 	return &reply, nil
 }
 
@@ -266,11 +274,13 @@ func (s *KVServer) Accept(c context.Context, r *Proposer) (*Acceptor, error) {
 	// `b := &*a` does not deref the reference, b and a are the same pointer.
 	d := *v.acceptor.LastBal
 	reply := Acceptor{
+		// Create a new pointer to the value of LastBal so that external code cannot change it
 		LastBal: &d,
 	}
 
 	// article say acceptor's LastBal equal proposer's Bal will accept it
 	// but if greater, point that a large proposer's Bal has been through phrase1 with most acceptor, the same accept it
+	
 	if r.Bal.GE(v.acceptor.LastBal) {
 		v.acceptor.LastBal = r.Bal
 		v.acceptor.Val = r.Val

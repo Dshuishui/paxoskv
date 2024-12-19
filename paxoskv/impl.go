@@ -119,7 +119,7 @@ func (p *Proposer) Phase1(acceptorIds []int64, quorum int) (* Value, *BallotNum,
 			return maxVoted.Val, nil, nil
 		}
 	}
-
+	// return nil if not enough quorum even if known the maxVoted value.
 	return nil, &higherBal, NotEnoughQuorum
 
 }

@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	NotEnoughQuorum  = errors.New("not enough quorum")
+	NotEnoughQuorum  = errors.New("Not enough quorum")
 	AcceptorBasePort = int64(3333)
 )
 

@@ -3,7 +3,7 @@
 ![naive](https://github.com/openacid/paxoskv/workflows/test/badge.svg?branch=naive)
 [![Build Status](https://travis-ci.com/openacid/paxoskv.svg?branch=naive)](https://travis-ci.com/openacid/paxoskv)
 
-这个 repo 仅是用于学习的实例代码，来自 [XP 哥](https://github.com/openacid/paxoskv).
+这个 repo 仅用于学习的实例代码，来自 [XP 哥](https://github.com/openacid/paxoskv).
 
 这是一个基于paxos, 只有200行代码的kv存储系统的简单实现, 以最简洁的形式展示paxos如何运行.
 [200行代码实现基于paxos的kv存储][] 是对本代码的原始讲解.

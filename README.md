@@ -59,7 +59,7 @@
 
     - `example_set_get_test.go`: 使用paxos提供的接口实现指定key和ver的写入和读取.
 
-## Usage
+## 使用
 
 Requirements: `go >= 1.14`.
 

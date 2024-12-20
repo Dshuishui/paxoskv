@@ -2,6 +2,7 @@ package paxoskv
 
 import (
 	"fmt"
+	// "testing"
 )
 
 func Example_setAndGetByKeyVer() {

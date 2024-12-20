@@ -207,6 +207,7 @@ type KVServer struct {
 	UnimplementedPaxosKVServer
 	mu      sync.Mutex
 	Storage map[string]Versions
+	CurrentVer map[string]int64
 }
 
 func (s *KVServer) getLockedVersion(id *PaxosInstanceId) *Version {
@@ -272,9 +273,10 @@ func (s *KVServer) Accept(c context.Context, r *Proposer) (*Acceptor, error) {
 
 	// a := &X{}
 	// `b := &*a` does not deref the reference, b and a are the same pointer.
+	// create a copy of the LastBal.
 	d := *v.acceptor.LastBal
 	reply := Acceptor{
-		// Create a new pointer to the value of LastBal so that external code cannot change it
+		// Create a new pointer to the copy of v.acceptor.LastBal so that external code cannot change it
 		LastBal: &d,
 	}
 
@@ -306,6 +308,7 @@ func ServeAcceptors(acceptorIds []int64) []*grpc.Server {
 		s := grpc.NewServer()
 		RegisterPaxosKVServer(s, &KVServer{
 			Storage: map[string]Versions{},
+			CurrentVer: map[string]int64{},
 		})
 		reflection.Register(s)
 		pretty.Logf("Acceptor-%d serving on %s ...", aid, addr)
@@ -314,4 +317,15 @@ func ServeAcceptors(acceptorIds []int64) []*grpc.Server {
 	}
 
 	return servers
+}
+
+func (s *KVServer) getNextVersion(key string) int64 {
+    s.mu.Lock()
+    defer s.mu.Unlock()
+    
+    currentVer := s.CurrentVer[key]
+	// The next version is the current version plus one.
+    nextVer := currentVer + 1	
+    s.CurrentVer[key] = nextVer
+    return nextVer
 }
